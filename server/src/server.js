@@ -7,6 +7,7 @@ const db = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const assetRoutes = require('./routes/assetRoutes');
 const auditRoutes = require('./routes/auditRoutes');
+const bookingRoutes = require('./routes/bookingRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -46,6 +47,7 @@ app.get('/api/health', async (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/assets', assetRoutes);
 app.use('/api/audit', auditRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 // 404 Handler
 app.use((req, res) => {

@@ -26,9 +26,10 @@ async function optionalAuth(req, res, next) {
   next();
 }
 
-// Public / Authenticated catalog reading
+// Public / Authenticated catalog reading & Smart Eligibility
 router.get('/', optionalAuth, assetController.listAssets);
 router.get('/:id', optionalAuth, assetController.getAsset);
+router.get('/:id/eligibility', optionalAuth, assetController.checkAssetEligibility);
 
 // Restricted asset governance operations (Manager, Admin)
 router.post('/', authenticateToken, requireRoles('Admin', 'Manager'), assetController.createAsset);

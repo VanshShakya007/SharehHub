@@ -79,7 +79,7 @@ async function listAssets(req, res) {
 }
 
 /**
- * Get single asset by ID or QR Payload
+ * Get single asset by ID or QR Payload, including smart eligibility calculation for the requester
  */
 async function getAsset(req, res) {
   try {
@@ -109,7 +109,28 @@ async function getAsset(req, res) {
       return res.status(404).json({ error: 'Asset not found.' });
     }
 
-    return res.json({ asset: result.rows[0] });
+    let asset = result.rows[0];
+
+    // Check user eligibility if authenticated
+    if (req.user) {
+      const userCertsRes = await db.query(
+        `SELECT prerequisite_id FROM user_certifications 
+         WHERE user_id = $1 AND is_valid = true AND expires_at > NOW()`,
+        [req.user.id]
+      );
+      const userCertIds = new Set(userCertsRes.rows.map(r => r.prerequisite_id));
+      const requiredPrereqs = asset.prerequisites || [];
+      const missingPrereqs = requiredPrereqs.filter(p => !userCertIds.has(p.id));
+      const isEligible = missingPrereqs.length === 0;
+
+      asset = {
+        ...asset,
+        isEligible,
+        missingPrereqs,
+      };
+    }
+
+    return res.json({ asset });
   } catch (error) {
     console.error('Get asset error:', error);
     return res.status(500).json({ error: 'Failed to retrieve asset details.' });
@@ -251,9 +272,76 @@ async function updateAsset(req, res) {
   }
 }
 
+/**
+ * Dedicated Smart Eligibility Validation Controller Endpoint
+ */
+async function checkAssetEligibility(req, res) {
+  try {
+    const { id } = req.params; // asset id
+    const userId = req.user ? req.user.id : req.body.userId;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required to check eligibility.' });
+    }
+
+    // 1. Fetch asset prerequisites
+    const assetRes = await db.query(
+      `SELECT 
+        a.id, a.name,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', p.id,
+              'code', p.code,
+              'name', p.name
+            )
+          ) FILTER (WHERE p.id IS NOT NULL), '[]'
+        ) as prerequisites
+       FROM assets a
+       LEFT JOIN asset_prerequisites ap ON a.id = ap.asset_id
+       LEFT JOIN prerequisites p ON ap.prerequisite_id = p.id
+       WHERE a.id = $1
+       GROUP BY a.id`,
+      [id]
+    );
+
+    if (assetRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Asset not found.' });
+    }
+
+    const asset = assetRes.rows[0];
+    const requiredPrereqs = asset.prerequisites || [];
+
+    // 2. Fetch user valid certifications
+    const userCertsRes = await db.query(
+      `SELECT prerequisite_id FROM user_certifications 
+       WHERE user_id = $1 AND is_valid = true AND expires_at > NOW()`,
+      [userId]
+    );
+    const userCertIds = new Set(userCertsRes.rows.map(r => r.prerequisite_id));
+
+    // 3. Compute eligibility gaps
+    const missingPrereqs = requiredPrereqs.filter(p => !userCertIds.has(p.id));
+    const isEligible = missingPrereqs.length === 0;
+
+    return res.json({
+      success: true,
+      assetId: asset.id,
+      assetName: asset.name,
+      isEligible,
+      missingPrereqs,
+      totalRequired: requiredPrereqs.length,
+      totalMissing: missingPrereqs.length,
+    });
+  } catch (error) {
+    console.error('Check eligibility error:', error);
+    return res.status(500).json({ error: 'Failed to evaluate asset eligibility.' });
+  }
+}
 module.exports = {
   listAssets,
   getAsset,
   createAsset,
   updateAsset,
+  checkAssetEligibility,
 };
