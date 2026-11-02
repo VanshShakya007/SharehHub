@@ -1,8 +1,15 @@
+// client/src/App.jsx
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Cpu, QrCode, Lock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
+import { ShieldCheck, Cpu, QrCode, Lock, LayoutGrid, ClipboardList, ShieldAlert } from 'lucide-react';
+import Catalog from './pages/Catalog';
+import AssetDetail from './pages/AssetDetail';
+import ManagerCommandCenter from './pages/ManagerCommandCenter';
+import AuditTrail from './pages/AuditTrail';
 
-export default function App() {
+function NavigationHeader() {
   const [health, setHealth] = useState({ status: 'Connecting...', database: 'Checking' });
+  const location = useLocation();
 
   useEffect(() => {
     fetch('/api/health')
@@ -12,11 +19,10 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col font-sans">
-      {/* Top Navbar */}
-      <header className="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-teal-500/10 border border-teal-500/30 rounded-lg text-teal-400">
+    <header className="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
+      <div className="flex items-center space-x-6">
+        <Link to="/catalog" className="flex items-center space-x-3 group">
+          <div className="p-2 bg-teal-500/10 border border-teal-500/30 rounded-lg text-teal-400 group-hover:bg-teal-500/20 transition">
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
@@ -25,86 +31,67 @@ export default function App() {
             </h1>
             <p className="text-xs text-slate-400 font-mono">Institutional Asset Governance Platform</p>
           </div>
+        </Link>
+
+        {/* Nav Links */}
+        <nav className="hidden md:flex items-center space-x-2 text-sm font-medium">
+          <Link
+            to="/catalog"
+            className={`px-3 py-1.5 rounded-lg transition flex items-center space-x-1.5 ${location.pathname.startsWith('/catalog') || location.pathname.startsWith('/assets') ? 'bg-slate-800 text-teal-300 border border-slate-700' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'}`}
+          >
+            <LayoutGrid className="w-4 h-4" />
+            <span>Catalog</span>
+          </Link>
+          <Link
+            to="/manager"
+            className={`px-3 py-1.5 rounded-lg transition flex items-center space-x-1.5 ${location.pathname === '/manager' ? 'bg-slate-800 text-teal-300 border border-slate-700' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'}`}
+          >
+            <ClipboardList className="w-4 h-4" />
+            <span>Manager Queue</span>
+          </Link>
+          <Link
+            to="/audit"
+            className={`px-3 py-1.5 rounded-lg transition flex items-center space-x-1.5 ${location.pathname === '/audit' ? 'bg-slate-800 text-teal-300 border border-slate-700' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'}`}
+          >
+            <ShieldAlert className="w-4 h-4" />
+            <span>Audit Ledger</span>
+          </Link>
+        </nav>
+      </div>
+
+      {/* System Status Pill */}
+      <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 bg-slate-800/60 border border-slate-700/60 px-3 py-1.5 rounded-full text-xs font-mono">
+          <span className={`w-2 h-2 rounded-full ${health.database === 'CONNECTED' ? 'bg-teal-400 animate-pulse' : 'bg-amber-400'}`} />
+          <span className="text-slate-300">API: {health.status}</span>
+          <span className="text-slate-500">|</span>
+          <span className="text-slate-300">DB: {health.database}</span>
         </div>
+      </div>
+    </header>
+  );
+}
 
-        {/* System Status Pill */}
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 bg-slate-800/60 border border-slate-700/60 px-3 py-1.5 rounded-full text-xs font-mono">
-            <span className={`w-2 h-2 rounded-full ${health.database === 'CONNECTED' ? 'bg-teal-400 animate-pulse' : 'bg-amber-400'}`} />
-            <span className="text-slate-300">API: {health.status}</span>
-            <span className="text-slate-500">|</span>
-            <span className="text-slate-300">DB: {health.database}</span>
-          </div>
-
-          <div className="hidden md:flex items-center space-x-2 text-xs font-medium text-slate-400">
-            <span className="px-2 py-1 rounded bg-slate-800/80 border border-slate-700">RBAC 5-Tier</span>
-            <span className="px-2 py-1 rounded bg-slate-800/80 border border-slate-700">SHA-256 Ledger</span>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content Hero */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-8 flex flex-col items-center justify-center text-center">
-        <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-300 text-xs font-mono uppercase tracking-wider mb-6">
-          <Lock className="w-3.5 h-3.5" />
-          <span>Stage 1 & 2: Core Foundation Initialized</span>
-        </div>
-
-        <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white max-w-3xl leading-tight mb-4">
-          Institutional Equipment & High-Value Asset Governance
-        </h2>
+export default function App() {
+  return (
+    <Router>
+      <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col font-sans">
+        <NavigationHeader />
         
-        <p className="text-slate-400 max-w-2xl text-base md:text-lg mb-10">
-          Equipped with cryptographically verified QR check-in/out, SHA-256 hash-chained audit trails, smart prerequisite eligibility matching, and explainable priority scoring.
-        </p>
+        <main className="flex-1 flex flex-col">
+          <Routes>
+            <Route path="/" element={<Navigate to="/catalog" replace />} />
+            <Route path="/catalog" element={<Catalog />} />
+            <Route path="/assets/:id" element={<AssetDetail />} />
+            <Route path="/manager" element={<ManagerCommandCenter />} />
+            <Route path="/audit" element={<AuditTrail />} />
+          </Routes>
+        </main>
 
-        {/* Feature Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full text-left">
-          <div className="bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 p-6 rounded-xl transition duration-200">
-            <div className="p-2.5 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-400 w-fit mb-4">
-              <Cpu className="w-5 h-5" />
-            </div>
-            <h3 className="font-semibold text-white text-lg mb-1">5-Tier RBAC Architecture</h3>
-            <p className="text-sm text-slate-400 mb-3">
-              Enforcing fine-grained access control across Students, Researchers, Managers, Admins, and Compliance Auditors.
-            </p>
-            <span className="text-xs font-mono text-blue-400 flex items-center space-x-1">
-              <CheckCircle2 className="w-3.5 h-3.5" /> <span>PostgreSQL Enums & JWT Ready</span>
-            </span>
-          </div>
-
-          <div className="bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 p-6 rounded-xl transition duration-200">
-            <div className="p-2.5 bg-teal-500/10 border border-teal-500/20 rounded-lg text-teal-400 w-fit mb-4">
-              <QrCode className="w-5 h-5" />
-            </div>
-            <h3 className="font-semibold text-white text-lg mb-1">Cryptographic QR Tokens</h3>
-            <p className="text-sm text-slate-400 mb-3">
-              Automated high-entropy payload generation for assets, enabling fast scanning and tamper-proof check-in/out.
-            </p>
-            <span className="text-xs font-mono text-teal-400 flex items-center space-x-1">
-              <CheckCircle2 className="w-3.5 h-3.5" /> <span>PNG/SVG Data URLs Generated</span>
-            </span>
-          </div>
-
-          <div className="bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 p-6 rounded-xl transition duration-200">
-            <div className="p-2.5 bg-purple-500/10 border border-purple-500/20 rounded-lg text-purple-400 w-fit mb-4">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <h3 className="font-semibold text-white text-lg mb-1">Hash-Chained Audit Ledger</h3>
-            <p className="text-sm text-slate-400 mb-3">
-              Every asset mutation, booking approval, and inspection state change is linked to the previous block via SHA-256.
-            </p>
-            <span className="text-xs font-mono text-purple-400 flex items-center space-x-1">
-              <CheckCircle2 className="w-3.5 h-3.5" /> <span>Tamper-Verification Endpoint</span>
-            </span>
-          </div>
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-800/80 py-4 px-6 text-center text-xs text-slate-500 font-mono">
-        ShareHub &copy; 2026 National Hackathon &bull; Built with React, Tailwind CSS, Node.js, Express & PostgreSQL
-      </footer>
-    </div>
+        <footer className="border-t border-slate-800/80 py-4 px-6 text-center text-xs text-slate-500 font-mono">
+          ShareHub &copy; 2026 National Hackathon &bull; Built with React, Tailwind CSS, Node.js, Express & PostgreSQL
+        </footer>
+      </div>
+    </Router>
   );
 }
